@@ -61,18 +61,13 @@ android {
     }
 }
 
-// 产物文件名：LyneADAS-<版本名>-zh.apk（例如 LyneADAS-1.0-zh.apk）。
-// 用 androidComponents 的 outputFileName，而不是 archivesBaseName：后者在 AGP 8 已不适用于
-// 单独控制 APK 文件名，outputFileName 才是正式 API。
-// 注意：这里用 appVersionName（不含 debug 的 versionNameSuffix），因此 debug 与 release
-// 产出同名文件，但位于各自 buildType 的输出目录下，不会冲突。
-androidComponents {
-    onVariants(selector().all()) { variant ->
-        variant.outputs.forEach { output ->
-            output.outputFileName.set("LyneADAS-$appVersionName-zh.apk")
-        }
-    }
-}
+// 注意：APK 产物的最终文件名（LyneADAS-<版本名>-zh.apk）在打包阶段由
+// .github/workflows/build.yml 完成，而不是在这里用 androidComponents 改写。
+// 原因：AGP 8.7.3 的 com.android.build.api.variant.VariantOutput 上没有 outputFileName
+// 成员（实测报 Unresolved reference），要在 Gradle 层改名只能用内部的
+// BaseVariantOutputImpl，属于非公开 API。改在 CI 既稳妥又能保证发布出去的 APK 名字正确。
+// 版本号仍然只有 appVersionName 这一个来源，CI 直接从 AGP 生成的
+// app/build/outputs/apk/debug/output-metadata.json 读取，不会产生第二处定义。
 
 dependencies {
     implementation(libs.androidx.core.ktx)

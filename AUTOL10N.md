@@ -20,9 +20,13 @@
 ### 1. `build.yml` —— 构建 APK 并自动发布到 Releases
 - **触发**：推送到 `main` / `l10n-cn`、对 `main` 的 PR、手动。
 - **产物文件名**：`LyneADAS-<版本名>-zh.apk`（例如 `LyneADAS-1.0-zh.apk`）。
-  由 `app/build.gradle.kts` 的 `androidComponents { … outputFileName … }` 决定，本地与云端一致；
-  版本名来自该文件顶部的 `appVersionName`（与 `defaultConfig.versionName` 同一来源）。
-  工作流本身按 glob 定位 APK，因此改名不会导致流水线失败。
+  改名在**打包阶段由本工作流完成**：构建后从 AGP 生成的
+  `app/build/outputs/apk/debug/output-metadata.json` 读取 `versionName`，去掉 debug 的
+  `-debug` 后缀，再 `mv` 成目标名。这样版本名仍然只有一处定义（`app/build.gradle.kts`）。
+  工作流本身按 glob 定位 APK，因此即使名字变了也不会导致流水线失败。
+  > 为什么不在 Gradle 层改名：AGP 8.7.3 的 `VariantOutput` 没有 `outputFileName` 成员
+  > （实测 `Unresolved reference`），Gradle 层只能改用内部的 `BaseVariantOutputImpl`。
+  > 代价是本地 `./gradlew assembleDebug` 产出的仍是 `app-debug.apk`，文件名只在发布环节规范化。
 - **做什么**：JDK 17 → Gradle 8.11.1（wrapper）→ `./gradlew :app:assembleDebug` → 定位并校验 APK
   → 上传为 Artifacts（`lyne-adas-cn-debug`，保留 14 天，用于按提交留档）
   → **发布到 Releases**。

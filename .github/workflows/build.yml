@@ -45,7 +45,7 @@ jobs:
       - name: Build debug APK
         run: ./gradlew :app:assembleDebug --stacktrace
 
-      - name: Locate built APK
+      - name: Locate and rename built APK
         id: apk
         run: |
           set -euo pipefail
@@ -55,6 +55,33 @@ jobs:
             ls -la "$APK_DIR" || true
             exit 1
           fi
+
+          # 版本名取自 AGP 生成的元数据，保证版本仍然只有一处定义（app/build.gradle.kts）
+          META="$APK_DIR/output-metadata.json"
+          VERSION=""
+          if [ -f "$META" ]; then
+            VERSION=$(jq -r '.elements[0].versionName // empty' "$META" 2>/dev/null || true)
+          fi
+          # debug 构建带 versionNameSuffix="-debug"；文件名里去掉它，得到 LyneADAS-1.0-zh.apk
+          VERSION="${VERSION%-debug}"
+
+          if [ -n "$VERSION" ]; then
+            TARGET="$APK_DIR/LyneADAS-${VERSION}-zh.apk"
+            if [ "$APK" != "$TARGET" ]; then
+              # 改名只是「让文件名好看」，失败也不该让一次成功的构建变红。
+              if mv -f "$APK" "$TARGET" 2>/dev/null; then
+                echo "重命名: $(basename "$APK") -> $(basename "$TARGET")"
+                APK="$TARGET"
+              else
+                echo "::warning::重命名失败，沿用原始文件名 $(basename "$APK")"
+              fi
+            else
+              APK="$TARGET"
+            fi
+          else
+            echo "::warning::未能从 output-metadata.json 读到 versionName，沿用原始文件名"
+          fi
+
           SIZE=$(stat -c%s "$APK")
           if [ "$SIZE" -le 0 ]; then
             echo "::error::APK 为空: $APK"
@@ -62,7 +89,7 @@ jobs:
           fi
           echo "path=$APK" >> "$GITHUB_OUTPUT"
           echo "name=$(basename "$APK")" >> "$GITHUB_OUTPUT"
-          echo "找到 APK: $APK ($((SIZE / 1024 / 1024)) MB)"
+          echo "产物: $APK ($((SIZE / 1024 / 1024)) MB)"
 
       - name: Upload APK as build artifact (按提交留档)
         uses: actions/upload-artifact@v6
