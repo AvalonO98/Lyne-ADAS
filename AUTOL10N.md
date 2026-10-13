@@ -17,10 +17,17 @@
 
 ## 一、三个工作流
 
-### 1. `build.yml` —— 构建 APK
+### 1. `build.yml` —— 构建 APK 并自动发布到 Releases
 - **触发**：推送到 `main` / `l10n-cn`、对 `main` 的 PR、手动。
-- **做什么**：JDK 17 → Gradle 8.11.1（wrapper）→ `./gradlew :app:assembleDebug` → 校验 APK 存在且非空 → 上传为产物 `lyne-adas-cn-debug`。
-- **权限**：只读（不修改仓库）。
+- **做什么**：JDK 17 → Gradle 8.11.1（wrapper）→ `./gradlew :app:assembleDebug` → 校验 APK 存在且非空
+  → 上传为 Artifacts（`lyne-adas-cn-debug`，保留 14 天，用于按提交留档）
+  → **发布到 Releases**。
+- **发布策略**：滚动标签 `cn-latest`（预发布），每次 `main` 构建成功就覆盖其中的 APK 并刷新说明，
+  因此 Releases 页面永远有一个可直接下载的「最新中文版」。PR 构建只校验、不发布。
+- **权限**：`contents: write`（创建/更新 Release 所需；来自 fork 的 PR 会被 GitHub 自动降级为只读）。
+
+> 若你希望改成「每个提交一个独立 Release」或「打 tag 才发布」，只需调整 `build.yml` 里
+> `Publish APK to Releases` 步骤的标签生成逻辑与 `if` 条件。
 
 ### 2. `l10n-guard.yml` —— 汉化回归守卫
 - **触发**：推送、所有 PR、手动。

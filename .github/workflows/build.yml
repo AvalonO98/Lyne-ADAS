@@ -1,7 +1,10 @@
 name: Build APK
 
-# 构建中文汉化版 APK。推送 / PR / 手动均可触发。
-# 该工作流不修改任何文件，只构建并上传产物。
+# 构建中文汉化版 APK，并把产物自动发布到 Releases（滚动更新的「最新」）。
+#
+# - 每次 main 构建成功 → 覆盖 Releases 里的 cn-latest（一个固定标签，方便直接下载）
+# - 每次构建同时上传 Artifacts → 便于按提交留档（默认保留 14 天）
+# - PR 构建只校验能否构建，不发布
 on:
   push:
     branches: [ main, l10n-cn ]
@@ -9,8 +12,13 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+# 创建/更新 Release 需要写权限；PR（尤其来自 fork 时）GitHub 会自动降级为只读。
 permissions:
-  contents: read
+  contents: write
+
+env:
+  APK_PATH: app/build/outputs/apk/debug/app-debug.apk
+  RELEASE_TAG: cn-latest
 
 jobs:
   build:
@@ -18,16 +26,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v5
 
       - name: Make gradlew executable
         run: chmod +x ./gradlew
@@ -38,19 +46,58 @@ jobs:
       - name: Verify APK exists
         run: |
           set -euo pipefail
-          APK=app/build/outputs/apk/debug/app-debug.apk
-          if [ ! -f "$APK" ]; then
-            echo "::error::APK not found at $APK"
+          if [ ! -f "$APK_PATH" ]; then
+            echo "::error::APK not found at $APK_PATH"
             exit 1
           fi
-          SIZE=$(stat -c%s "$APK")
+          SIZE=$(stat -c%s "$APK_PATH")
           echo "APK size: $((SIZE / 1024 / 1024)) MB"
           test "$SIZE" -gt 0
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+      - name: Upload APK as build artifact (按提交留档)
+        uses: actions/upload-artifact@v6
         with:
           name: lyne-adas-cn-debug
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
+
+      - name: Publish APK to Releases (滚动最新)
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          SIZE=$(stat -c%s "$APK_PATH")
+          {
+            echo "## Lyne ADAS 中文版"
+            echo
+            echo "由 GitHub Actions 自动构建并发布。"
+            echo
+            echo "- 提交: ${GITHUB_SHA}"
+            echo "- 分支: ${GITHUB_REF_NAME}"
+            echo "- APK 大小: $((SIZE / 1024 / 1024)) MB"
+            echo "- 构建记录: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo
+            echo "> 标签 ${RELEASE_TAG} 是滚动更新的「最新中文构建」，每次 main 构建成功都会覆盖这里的 APK。"
+            echo "> 需要按提交固定留档的版本，请到对应工作流运行的 Artifacts 中下载。"
+            echo
+            echo "### 安装与安全提示"
+            echo "- 本应用仅提供警告，不会控制车辆；请把手机横向固定在挡风玻璃上"
+            echo "- 请始终保持对道路的注意力，本应用不能替代驾驶判断"
+          } > notes.md
+
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "更新已有 Release: $RELEASE_TAG"
+            gh release upload "$RELEASE_TAG" "$APK_PATH" --clobber --repo "$GITHUB_REPOSITORY"
+            gh release edit "$RELEASE_TAG" --notes-file notes.md --repo "$GITHUB_REPOSITORY"
+          else
+            echo "创建 Release: $RELEASE_TAG"
+            gh release create "$RELEASE_TAG" "$APK_PATH" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title "Lyne ADAS 中文版（最新构建）" \
+              --notes-file notes.md \
+              --prerelease
+          fi
+          echo "Release 已更新: https://github.com/${GITHUB_REPOSITORY}/releases/tag/${RELEASE_TAG}"

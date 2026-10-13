@@ -2,8 +2,9 @@
 
 ## 状态
 
-源码层面的汉化已完成并通过静态校验（`scripts/check_untranslated.py` 退出码 0）。
-**构建验证尚未进行**：本机没有 JDK 17 与 Android SDK，从未真正产出过 APK。
+源码层面的汉化已完成并通过静态校验（`scripts/check_untranslated.py` 退出码 0），
+且提交 `0e296fe` 已在 GitHub Actions 上 `:app:assembleDebug` **构建成功 ✅**。
+`main` 每次构建成功都会把 APK 自动发布到 Releases 的滚动标签 `cn-latest`。
 完整核对结论见 [HANHUA_REPORT.md](HANHUA_REPORT.md)。
 
 ## 汉化文件位置

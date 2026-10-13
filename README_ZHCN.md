@@ -2,10 +2,10 @@
 
 一个 Android 高级驾驶辅助系统（ADAS，仅警告、不控车）的中文汉化版本。
 
-> **当前状态（如实）**：源码层面的汉化已由 `scripts/check_untranslated.py` 实测确认
-> 「无英文用户文案残留」。但**尚未完成一次真实构建验证**（本机没有 JDK 17 与 Android SDK），
-> 所以「安装包语言为中文」这一最终验收还需要在具备 Android 构建环境处跑一次。
-> 详细核对结果见 [HANHUA_REPORT.md](HANHUA_REPORT.md)。
+> **当前状态**：源码层面的汉化已由 `scripts/check_untranslated.py` 实测确认「无英文用户文案残留」；
+> 并且提交 `0e296fe` 已在 GitHub Actions 上 `:app:assembleDebug` **构建成功 ✅**。
+> 每次 `main` 构建成功都会把 APK 自动发布到 Releases 的滚动标签 `cn-latest`。
+> 尚待人工确认的只有「装到设备上看一眼界面」。详细核对结果见 [HANHUA_REPORT.md](HANHUA_REPORT.md)。
 
 ## 汉化的三处落点
 

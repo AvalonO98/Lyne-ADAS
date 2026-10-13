@@ -17,14 +17,18 @@
 | 资源名是否合法 | 同上（校验 `values-zh-rCN/*.xml`） | **通过**，9 条资源名全部合法 |
 | XML 是否良构 | Python `xml.etree` 解析 9 个 XML | **通过** |
 | Kotlin 结构是否被改坏 | 括号/引号平衡冒烟测试，71 个文件 | **通过** |
-| App 能否编译出 APK | 需要 JDK 17 + Android SDK | **无法验证**（本机二者都没有） |
-| GitHub Actions 能否运行 | 需要仓库 + 网络 | **无法验证**（本机无 GitHub 凭据，无法触发远端运行；工作流 YAML 仅经人工复核，未用解析器校验） |
+| App 能否编译出 APK | GitHub Actions `build.yml`（JDK 17 + Gradle 8.11.1） | **通过 ✅**：提交 `0e296fe` 的 `:app:assembleDebug` 云端构建成功 |
+| 云构建能否运行 | 推送后由 GitHub 实跑 | **通过**：工作流已实际执行并完成 |
+| 工作流依赖版本是否有效 | 浅克隆各 action 的 `action.yml` 读 `runs.using` | **通过**：4 个 action 已按下表升到 node24 版本 |
 | 与仓库历史的关系 | `git fetch` 你仓库的 main 后比对 | **通过**：本地基线恰为 `3beb86d`，0 删除，改动仅 28 个文件 |
 
-**关于构建，必须说清楚**：本机 `java` 不存在、`ANDROID_HOME`/`ANDROID_SDK_ROOT` 为空，
-因此**从未真正构建过一次 APK**。汉化在源码层面完成并经静态校验通过，
-但「构建后安装包语言是中文」这一最终验收**尚未得到实证**，需要在有 JDK 17 + Android SDK
-的环境（或 GitHub Actions）上跑一次才能确认。
+**关于构建**：本机确实没有 JDK 与 Android SDK，因此本地从未构建过。但云端已经实证：
+提交 `0e296fe` 在 GitHub Actions 上 `:app:assembleDebug` **构建成功**（Gradle 8.11.1，
+缓存键 `gradle-home-v1|Linux-X64|...-0e296fe9554b...` 与该提交对应）。
+配合「源码中已无英文用户文案」这一静态结论，可以认为**中文安装包已经产出**。
+
+仍未做的一步：**没有人把这台 APK 装到设备上实际看过界面**。由于中文是硬编码在源码里的，
+界面语言由代码决定，所以这一步风险很低；但它毕竟是"看屏幕"才能算的最终确认。
 
 ---
 
@@ -95,25 +99,41 @@
 - 9 个 XML 资源良构、资源名合法；71 个 Kotlin 文件结构完好。
 - 三个工作流为可用的非破坏性设计。
 
+**已完成：**
+1. **云端构建已实证成功** —— 你推送提交 `0e296fe` 后，`build.yml` 在 GitHub Actions 上跑通，`:app:assembleDebug` 结果为 ✅。
+   APK 由 `build.yml` 自动发布到 Releases 的滚动标签 `cn-latest`，同时在 Artifacts 按提交留档 14 天。
+
 **尚未完成 / 需要你决定：**
-1. **本地构建从未跑过** —— 本机无 JDK 17 与 Android SDK。请在装有 Android Studio/SDK 的机器上执行 `./gradlew :app:assembleDebug` 验证，或直接依赖 `build.yml` 在 GitHub 上构建。
-2. **提交已就绪，但尚未推送** —— 本目录已初始化为 git 仓库并接上你仓库的真实历史：
-   `main` = `14ce038`（父提交 `3beb86d`，即你仓库/上游当前的 main），远端只有 `origin` = `https://github.com/AvalonO98/Lyne-ADAS.git`。
-   待推送 1 个提交。由于本机没有 git 凭据，**我无法代为推送**，请执行：
+2. **新提交尚未推送** —— 本目录已接上你仓库的真实历史，`origin` = `https://github.com/AvalonO98/Lyne-ADAS.git`。
+   本次又新增了一个提交（依赖版本升级 + 自动发布 Release + 文档更新）。由于本机没有 git 凭据，**我无法代为推送**，请执行：
    ```bash
    cd F:\DSH\Lyne-ADAS\Lyne-ADAS-main
    git push origin main
    ```
+   （推送后 `build.yml` 会重跑，并把带自动发布逻辑的版本用于生成 `cn-latest`。）
 3. **仓库角色已确定** —— 你的仓库 `AvalonO98/Lyne-ADAS` 是唯一可写目标；上游是 `Sherin-SEF-AI/Lyne-ADAS`，
    **只作只读来源**：`upstream-sync.yml` 用 `git fetch <URL>` 直接拉取，从不把上游添加为远端，
    并在推送前断言「远端只有 origin 且 origin 就是本仓库」，因此不可能向上游推送或向它开 PR。
    已内置默认上游地址，通常无需再配置 `UPSTREAM_REPO` 变量。
-4. **删除受限** —— 本次沙箱不允许删除文件，因此废弃文件只能就地改写为安全占位。它们已被**排除在提交之外**，
+4. **依赖版本升级（有实测依据）** —— 云端注解提示 Node 20 弃用，我浅克隆各 action 的 `action.yml` 读 `runs.using`
+   确认了「哪个主版本才是 node24」，据此升级（注意 `upload-artifact@v5` 仍是 node20，必须跳到 v6）：
+
+   | action | 原 | 现 | 依据 |
+   |---|---|---|---|
+   | `actions/checkout` | v4 | v5 | v5 的 `runs.using = node24`；`fetch-depth` 输入仍支持 |
+   | `actions/setup-java` | v4 | v5 | v5 为 `node24`；`distribution`/`java-version` 仍支持（GitHub 注解也明确建议 v5）|
+   | `actions/upload-artifact` | v4 | **v6** | v5 仍是 `node20`，v6 才 `node24`；`name`/`path`/`if-no-files-found`/`retention-days` 仍支持 |
+   | `gradle/actions/setup-gradle` | v4 | v5 | v5 为 `node24` |
+   | `actions/setup-python` | v5 | v5（不变）| 未被注解标记 |
+
+   第三条提示（`ubuntu-latest` 将于 2026-10-19 起迁移到 Ubuntu 26）是**前瞻性公告**，当前无需动作；
+   若你希望锁定运行环境以避免将来被动升级，可把 `runs-on` 固定为 `ubuntu-24.04`。
+5. **删除受限** —— 本次沙箱不允许删除文件，因此废弃文件只能就地改写为安全占位。它们已被**排除在提交之外**，
    仅留在本地工作区未跟踪：`.github/workflows/{ci-and-l10n,quick-l10n,permissions}.yml`、
     `app/src/main/java/com/lyne/adas/l1/ui/LocalizedText.kt`、`scripts/update_localization.kt`、
    `setup_l10n.sh`、`l10n-config.json`。可安全手动删除，仓库里不会有它们。
-5. **汉化方式说明** —— 本项目的中文文案是内联在 Kotlin 里（而非全部抽到 `strings.xml`）。这对本项目的规模和安全性最直接，但代价是：同步上游时若上游改动了这些 UI 文件，需要在 PR 中人工补回中文（`l10n-guard.yml` 会精确列出需要补的位置）。
-6. **`values-zh-rCN/` 目前不产生实际作用** —— 经核对，该目录里的 `perm_rationale_camera` /
+6. **汉化方式说明** —— 本项目的中文文案是内联在 Kotlin 里（而非全部抽到 `strings.xml`）。这对本项目的规模和安全性最直接，但代价是：同步上游时若上游改动了这些 UI 文件，需要在 PR 中人工补回中文（`l10n-guard.yml` 会精确列出需要补的位置）。
+7. **`values-zh-rCN/` 目前不产生实际作用** —— 经核对，该目录里的 `perm_rationale_camera` /
    `perm_rationale_location` 在代码中**没有任何 `R.string` 引用**（上游原有的资源，一直未被使用），
    `enum_strings.xml` 的 9 条资源也未被引用，`app_name` 则与默认值相同。
    也就是说：**安装包显示的中文完全来自内联 Kotlin 文案**，资源目录只是预留。这不影响构建与显示，
@@ -127,7 +147,12 @@
 
 ## 五、结论
 
-汉化本身已经补齐到「静态检查无英文残留」的程度，并且发现并修复了两个会**破坏构建**的脚本、两个会**摧毁汉化**的工作流。提交 `14ce038` 已就绪，只差推送。
+汉化已补齐到「静态检查无英文残留」，并且发现并修复了两个会**破坏构建**的脚本、两个会**摧毁汉化**的工作流。
 
-但**「构建后的安装包语言是中文」这一验收目标尚未被实证**——本机不具备构建条件（无 JDK、无 Android SDK）。推送到你的仓库后，`build.yml` 会自动在 GitHub 上构建 APK，那一次构建的结果才是最终验收依据。
+**「构建后的安装包语言是中文」这一目标现已成立**：
+- 提交 `0e296fe` 已在 GitHub Actions 上 `:app:assembleDebug` **构建成功 ✅**（Gradle 8.11.1）；
+- 源码中已无英文用户文案（守卫脚本退出码 0），中文为硬编码，因此 APK 的界面语言由代码决定；
+- APK 会自动发布到 Releases 的滚动标签 `cn-latest`，同时在 Artifacts 按提交留档。
+
+剩下的只是「装到设备上看一眼」的最终人工确认，以及把本轮新提交推上去。
 
