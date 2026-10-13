@@ -26,11 +26,11 @@ import androidx.compose.ui.unit.sp
 private data class Step(val title: String, val body: String)
 
 private val STEPS = listOf(
-    Step("LYNE ADAS", "On-device driver assistance for your phone. Forward-collision, lane-departure, pedestrian, headway and speed-sign warnings — all running locally, no cloud."),
-    Step("Warning-only", "Lyne never controls your vehicle. It is an aid, not a substitute for attention. Distances and time-to-collision are estimates. Keep your eyes on the road."),
-    Step("Mount the phone", "Place the phone landscape on the windshield/dash, rear camera facing the road, lens unobstructed and roughly at eye level. A stable mount matters for accuracy."),
-    Step("Permissions", "Camera is required to see the road. Location is optional and powers speed-based warnings (headway, overspeed)."),
-    Step("Calibrate", "Monocular distance depends on your camera's field of view. You can fine-tune it anytime from the CAL screen against a known gap."),
+    Step("LYNE ADAS", "手机端驾驶辅助系统。前碰撞、车道偏离、行人、车间距和交通标志警告——全部本地运行，无需云服务。"),
+    Step("仅为警告", "Lyne 不会控制您的车辆。它是一个辅助工具，不能替代注意力。距离和碰撞时间是估算值。请始终关注道路。"),
+    Step("安装手机", "将手机横向放置在挡风玻璃/仪表板上，后置摄像头面向道路，镜头无遮挡且大致与眼睛平齐。稳定的安装对准确性很重要。"),
+    Step("权限", "摄像头是观看道路所必需的。位置是可选的，用于支持基于速度的警告（车间距、超速）。"),
+    Step("校准", "单目距离取决于您的摄像头视野。您可以在 CAL 屏幕上随时根据已知间距进行微调。"),
 )
 
 @Composable
@@ -53,15 +53,15 @@ fun OnboardingScreen(cameraGranted: Boolean, onRequestPermissions: () -> Unit, o
         Text(s.body, color = p.textDim, fontSize = 15.sp)
         if (isPermStep) {
             Spacer(Modifier.size(16.dp))
-            if (cameraGranted) Text("Camera granted ✓", color = p.ok, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-            else PillButton("GRANT PERMISSIONS", p.accent, onRequestPermissions)
+            if (cameraGranted) Text("摄像头已授权 ✓", color = p.ok, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            else PillButton("授予权限", p.accent, onRequestPermissions)
         }
         Spacer(Modifier.weight(1f))
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            if (step > 0) PillButton("BACK", p.textDim) { step-- } else Spacer(Modifier.size(1.dp))
+            if (step > 0) PillButton("上一步", p.textDim) { step-- } else Spacer(Modifier.size(1.dp))
             val canAdvance = !isPermStep || cameraGranted
-            val label = if (step == STEPS.lastIndex) "START" else "NEXT"
+            val label = if (step == STEPS.lastIndex) "开始" else "下一步"
             PillButton(label, if (canAdvance) p.accent else p.textDim) {
                 if (!canAdvance) return@PillButton
                 if (step == STEPS.lastIndex) onFinish() else step++

@@ -24,37 +24,37 @@ fun SessionScreen(state: AdasUiState, onExport: () -> Unit, onOpenTrips: () -> U
     val p = palette()
     val s = state.session
     Column(Modifier.fillMaxSize().background(p.background).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        ScreenHeader("DRIVE SESSION", onClose)
+        ScreenHeader("驾驶会话", onClose)
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            StatCard("DURATION", s?.let { fmtDuration(it.durationMs) } ?: "00:00", Modifier.weight(1f))
-            StatCard("DISTANCE", s?.let { "%.1f km".format(it.distanceKm) } ?: "0.0 km", Modifier.weight(1f))
+            StatCard("持续时间", s?.let { fmtDuration(it.durationMs) } ?: "00:00", Modifier.weight(1f))
+            StatCard("距离", s?.let { "%.1f 公里".format(it.distanceKm) } ?: "0.0 公里", Modifier.weight(1f))
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            StatCard("MAX SPEED", s?.let { "${it.maxSpeedKph.toInt()} km/h" } ?: "-- km/h", Modifier.weight(1f))
-            StatCard("ALERTS", s?.totalAlerts?.toString() ?: "0", Modifier.weight(1f))
+            StatCard("最高速度", s?.let { "${it.maxSpeedKph.toInt()} 公里/小时" } ?: "-- 公里/小时", Modifier.weight(1f))
+            StatCard("警告", s?.totalAlerts?.toString() ?: "0", Modifier.weight(1f))
         }
 
         s?.alertCounts?.takeIf { it.isNotEmpty() }?.let { counts ->
-            SectionLabel("BY TYPE")
+            SectionLabel("按类型")
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 counts.entries.sortedByDescending { it.value }.forEach { (type, n) ->
-                    Text("${type.name} $n", color = p.text, fontSize = 12.sp,
+                    Text("${type.getDisplayName()} $n", color = p.text, fontSize = 12.sp,
                         modifier = Modifier.background(p.surfaceAlt, RoundedCornerShape(6.dp)).padding(8.dp, 5.dp))
                 }
             }
         }
 
-        SectionLabel("EVENT LOG")
+        SectionLabel("事件日志")
         Box(Modifier.weight(1f).fillMaxWidth().background(p.surface, RoundedCornerShape(8.dp)).padding(8.dp)) {
             if (state.recentEvents.isEmpty()) {
-                Text("No events yet. Warnings appear here as they fire.", color = p.textDim, fontSize = 12.sp)
+                Text("暂无事件。警告触发时会显示在这里。", color = p.textDim, fontSize = 12.sp)
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     items(state.recentEvents.asReversed()) { e ->
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text("●", color = p.severityColor(e.severity), fontSize = 12.sp)
-                            Text(e.type.name, color = p.text, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text(e.type.getDisplayName(), color = p.text, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             Text(e.message, color = p.textDim, fontSize = 12.sp)
                         }
                     }
@@ -63,9 +63,9 @@ fun SessionScreen(state: AdasUiState, onExport: () -> Unit, onOpenTrips: () -> U
         }
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            PillButton("TRIP HISTORY", p.text, onOpenTrips)
-            PillButton("DASHCAM", p.text, onOpenClips)
-            PillButton("EXPORT", p.accent, onExport)
+            PillButton("行程历史", p.text, onOpenTrips)
+            PillButton("行车记录", p.text, onOpenClips)
+            PillButton("导出", p.accent, onExport)
         }
     }
 }

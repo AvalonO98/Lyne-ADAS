@@ -1,0 +1,32 @@
+name: L10n Guard
+
+# 汉化回归守卫：任何改动只要把英文用户文案带回来（例如同步上游覆盖了汉化），
+# 这个工作流就会失败，从而在合并前拦住。
+on:
+  push:
+    branches: [ main, l10n-cn ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    name: Check for English regressions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run localization guard
+        run: python scripts/check_untranslated.py
+
+      - name: Report localization status
+        if: always()
+        run: python scripts/auto_localize.py || true

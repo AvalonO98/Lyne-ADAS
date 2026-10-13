@@ -19,7 +19,7 @@ data class ProbeResult(
     val measured: Boolean,
 ) {
     val summary: String
-        get() = "tier=$tier ram=${ramMb}MB cores=$cores gpu=$gpuSupported nnapi=$nnApiAvailable bench=${cpuBenchMs}ms hint=$backendHint"
+        get() = "级别=$tier 内存=${ramMb}MB 核心=$cores 图形加速=$gpuSupported NNAPI=$nnApiAvailable 跑分=${cpuBenchMs}毫秒 建议后端=$backendHint"
 }
 
 /**

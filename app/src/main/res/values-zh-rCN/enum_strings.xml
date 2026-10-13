@@ -1,0 +1,24 @@
+<resources>
+    <!--
+      注意：这些中文枚举资源目前未被代码引用。
+      界面上的枚举/类型中文名由 ui/ChineseMapper.kt 的纯映射函数提供
+      （getDisplayName / alertTypeLabel / objectClassLabel），
+      因为 Compose 侧直接调用更简单，且避免了 resources.getIdentifier()
+      在 release 资源压缩下可能失效的问题。
+      保留此文件是为将来改用 stringResource() 时可直接复用。
+    -->
+    <!-- 灵敏度预设 -->
+    <string name="sensitivity_calm">温和</string>
+    <string name="sensitivity_normal">正常</string>
+    <string name="sensitivity_aggressive">灵敏</string>
+    
+    <!-- 设备级别 -->
+    <string name="device_tier_a">旗舰级</string>
+    <string name="device_tier_b">中端级</string>
+    <string name="device_tier_c">入门级</string>
+    
+    <!-- 白天/夜晚模式 -->
+    <string name="daynight_auto">自动</string>
+    <string name="daynight_day">白天</string>
+    <string name="daynight_night">夜晚</string>
+</resources>

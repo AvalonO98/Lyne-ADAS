@@ -54,8 +54,8 @@ fun SpeedGauge(speedKph: Float?, limitKph: Int?, overspeed: Severity, modifier: 
     ArcGauge(frac, color, p.surfaceAlt, modifier) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(speedKph?.let { it.toInt().toString() } ?: "--", color = p.text, fontSize = 30.sp, fontWeight = FontWeight.Bold)
-            Text("km/h", color = p.textDim, fontSize = 10.sp)
-            Text(limitKph?.let { "LIM $it" } ?: "LIM --", color = if (overspeed != Severity.NONE) color else p.textDim, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            Text("公里/小时", color = p.textDim, fontSize = 10.sp)
+            Text(limitKph?.let { "限速 $it" } ?: "限速 --", color = if (overspeed != Severity.NONE) color else p.textDim, fontSize = 11.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -67,9 +67,9 @@ fun TtcRing(ttcSec: Float?, severity: Severity, modifier: Modifier = Modifier) {
     val color = if (severity != Severity.NONE) p.severityColor(severity) else p.ok
     ArcGauge(frac, color, p.surfaceAlt, modifier) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("TTC", color = p.textDim, fontSize = 10.sp)
+            Text("碰撞时间", color = p.textDim, fontSize = 10.sp)
             Text(ttcSec?.let { fmt1(it) } ?: "--", color = color, fontSize = 28.sp, fontWeight = FontWeight.Bold)
-            Text("sec", color = p.textDim, fontSize = 10.sp)
+            Text("秒", color = p.textDim, fontSize = 10.sp)
         }
     }
 }
@@ -81,9 +81,9 @@ fun HeadwayRing(headwaySec: Float?, severity: Severity, modifier: Modifier = Mod
     val color = if (severity != Severity.NONE) p.severityColor(severity) else p.ok
     ArcGauge(frac, color, p.surfaceAlt, modifier) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("HEADWAY", color = p.textDim, fontSize = 9.sp)
+            Text("车间距", color = p.textDim, fontSize = 9.sp)
             Text(headwaySec?.let { fmt1(it) } ?: "--", color = color, fontSize = 28.sp, fontWeight = FontWeight.Bold)
-            Text("sec", color = p.textDim, fontSize = 10.sp)
+            Text("秒", color = p.textDim, fontSize = 10.sp)
         }
     }
 }

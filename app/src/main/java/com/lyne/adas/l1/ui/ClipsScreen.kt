@@ -28,16 +28,16 @@ import java.util.Locale
 fun ClipsScreen(clips: List<File>, onPlay: (File) -> Unit, onShare: (File) -> Unit, onClose: () -> Unit) {
     val p = palette()
     Column(Modifier.fillMaxSize().background(p.background).padding(16.dp)) {
-        ScreenHeader("DASHCAM CLIPS", onClose)
+        ScreenHeader("行车记录视频", onClose)
         Spacer(Modifier.height(8.dp))
         Text(
-            "Saved automatically around critical events. Enable the dashcam in Settings.",
+            "关键事件时自动保存。需要在设置中启用行车记录功能。",
             color = p.textDim, fontSize = 12.sp,
         )
         Spacer(Modifier.height(12.dp))
 
         if (clips.isEmpty()) {
-            Text("No clips yet.", color = p.textDim, fontSize = 13.sp)
+            Text("暂无视频。", color = p.textDim, fontSize = 13.sp)
         } else {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 clips.forEach { f ->
@@ -46,8 +46,8 @@ fun ClipsScreen(clips: List<File>, onPlay: (File) -> Unit, onShare: (File) -> Un
                         Text("%.1f MB".format(f.length() / 1e6), color = p.textDim, fontSize = 11.sp)
                         Spacer(Modifier.height(8.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            PillButton("PLAY", p.accent) { onPlay(f) }
-                            PillButton("SHARE", p.text) { onShare(f) }
+                            PillButton("播放", p.accent) { onPlay(f) }
+                            PillButton("分享", p.text) { onShare(f) }
                         }
                     }
                 }

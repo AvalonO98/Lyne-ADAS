@@ -34,7 +34,7 @@ fun ScreenHeader(title: String, onClose: () -> Unit) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(title, color = p.text, fontSize = 18.sp, fontWeight = FontWeight.Bold)
         Text(
-            "CLOSE", color = p.accent, fontWeight = FontWeight.Bold,
+            "关闭", color = p.accent, fontWeight = FontWeight.Bold,
             modifier = Modifier.clickable(onClick = onClose).padding(4.dp),
         )
     }

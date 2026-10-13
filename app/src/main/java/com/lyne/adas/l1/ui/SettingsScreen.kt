@@ -44,42 +44,42 @@ fun SettingsScreen(
         Modifier.fillMaxSize().background(p.background).padding(16.dp).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        ScreenHeader("SETUP", onClose)
+        ScreenHeader("设置", onClose)
 
-        SectionLabel("SENSITIVITY")
+        SectionLabel("灵敏度")
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             SensitivityPreset.entries.forEach { s ->
-                Chip(s.name, state.sensitivity == s) { onSetSensitivity(s) }
+                Chip(s.getDisplayName(), state.sensitivity == s) { onSetSensitivity(s) }
             }
         }
 
-        SectionLabel("DAY / NIGHT")
+        SectionLabel("白天 / 夜晚")
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            DayNightMode.entries.forEach { m -> Chip(m.name, state.dayNightMode == m) { onSetDayNight(m) } }
+            DayNightMode.entries.forEach { m -> Chip(m.getDisplayName(), state.dayNightMode == m) { onSetDayNight(m) } }
         }
 
-        SectionLabel("DEVICE TIER (rebuilds pipeline)")
+        SectionLabel("设备级别 (重建处理流水线)")
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Chip("AUTO", false) { onSetTier(null) }
-            DeviceTier.entries.forEach { t -> Chip(t.name, state.tier == t) { onSetTier(t) } }
+            Chip("自动", false) { onSetTier(null) }
+            DeviceTier.entries.forEach { t -> Chip(t.getDisplayName(), state.tier == t) { onSetTier(t) } }
         }
         Text(state.probeSummary, color = p.textDim, fontSize = 10.sp)
 
-        SectionLabel("THRESHOLDS")
-        SliderRow("TTC caution", config.ttcCautionSec, 1f, 4f) { onApplyConfig(config.copy(ttcCautionSec = it)) }
-        SliderRow("TTC critical", config.ttcCriticalSec, 0.8f, 3f) { onApplyConfig(config.copy(ttcCriticalSec = it)) }
-        SliderRow("Headway warn", config.headwayWarnSec, 0.5f, 2.5f) { onApplyConfig(config.copy(headwayWarnSec = it)) }
-        SliderRow("Object score", config.objectScoreThreshold, 0.2f, 0.7f) { onApplyConfig(config.copy(objectScoreThreshold = it)) }
-        SliderRow("Ego-path width", config.egoPathHalfWidthFrac, 0.15f, 0.45f) { onApplyConfig(config.copy(egoPathHalfWidthFrac = it)) }
+        SectionLabel("阈值")
+        SliderRow("TTC警告距离", config.ttcCautionSec, 1f, 4f) { onApplyConfig(config.copy(ttcCautionSec = it)) }
+        SliderRow("TTC紧急距离", config.ttcCriticalSec, 0.8f, 3f) { onApplyConfig(config.copy(ttcCriticalSec = it)) }
+        SliderRow("车间距警告", config.headwayWarnSec, 0.5f, 2.5f) { onApplyConfig(config.copy(headwayWarnSec = it)) }
+        SliderRow("物体识别分数", config.objectScoreThreshold, 0.2f, 0.7f) { onApplyConfig(config.copy(objectScoreThreshold = it)) }
+        SliderRow("车道宽度", config.egoPathHalfWidthFrac, 0.15f, 0.45f) { onApplyConfig(config.copy(egoPathHalfWidthFrac = it)) }
 
-        SectionLabel("TOGGLES")
-        Toggle("Inject synthetic scenario", config.debugInjectSynthetic) { onApplyConfig(config.copy(debugInjectSynthetic = it)) }
-        Toggle("Perf overlay", state.showPerf) { onTogglePerf() }
-        Toggle("ROVIX sidecar logging", config.emitRovixSidecar) { onApplyConfig(config.copy(emitRovixSidecar = it)) }
-        Toggle("Dashcam (off by default)", config.dashcamEnabled) { onApplyConfig(config.copy(dashcamEnabled = it)) }
+        SectionLabel("开关")
+        Toggle("注入模拟场景", config.debugInjectSynthetic) { onApplyConfig(config.copy(debugInjectSynthetic = it)) }
+        Toggle("性能叠加层", state.showPerf) { onTogglePerf() }
+        Toggle("ROVIX日志记录", config.emitRovixSidecar) { onApplyConfig(config.copy(emitRovixSidecar = it)) }
+        Toggle("行车记录(默认关闭)", config.dashcamEnabled) { onApplyConfig(config.copy(dashcamEnabled = it)) }
 
         Text(
-            "Settings persist across restarts. Presets scale all FCW/headway thresholds at once.",
+            "设置会在重启后保留。预设会同时调整所有前碰撞/车间距阈值。",
             color = p.textDim, fontSize = 10.sp, modifier = Modifier.padding(top = 8.dp),
         )
     }
@@ -111,7 +111,7 @@ private fun Toggle(label: String, value: Boolean, onChange: (Boolean) -> Unit) {
     ) {
         Text(label, color = p.text, fontSize = 13.sp)
         Text(
-            if (value) "ON" else "OFF",
+            if (value) "开" else "关",
             color = if (value) p.ok else p.textDim, fontWeight = FontWeight.Bold, fontSize = 13.sp,
         )
     }

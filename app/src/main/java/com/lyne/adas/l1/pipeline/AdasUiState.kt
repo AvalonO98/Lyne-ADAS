@@ -15,7 +15,7 @@ data class AdasUiState(
     val error: String? = null,
     val tier: DeviceTier = DeviceTier.B,
     val profile: TierProfile = TierProfile.TIER_B,
-    val probeSummary: String = "probing…",
+    val probeSummary: String = "正在探测…",
     val usingStub: Boolean = true, // object detector is a stub (no real weights)
     val signStub: Boolean = true,  // sign classifier is a stub (no speed-limit model)
     val debugInject: Boolean = false,

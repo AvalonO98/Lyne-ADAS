@@ -38,13 +38,13 @@ fun TripsScreen(trips: List<Trip>, onClose: () -> Unit) {
     var selected by remember { mutableStateOf<Trip?>(null) }
 
     Column(Modifier.fillMaxSize().background(p.background).padding(16.dp)) {
-        ScreenHeader(if (selected == null) "TRIP HISTORY" else "TRIP", onClose)
+        ScreenHeader(if (selected == null) "行程历史" else "行程详情", onClose)
         Spacer(Modifier.height(12.dp))
 
         val sel = selected
         if (sel == null) {
             if (trips.isEmpty()) {
-                Text("No drives recorded yet. Finish a drive and it lands here.", color = p.textDim, fontSize = 13.sp)
+                Text("暂无驾驶记录。完成一次驾驶后记录会显示在这里。", color = p.textDim, fontSize = 13.sp)
             } else {
                 Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     trips.forEach { t -> TripRow(t) { selected = t } }
@@ -52,18 +52,18 @@ fun TripsScreen(trips: List<Trip>, onClose: () -> Unit) {
             }
         } else {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                PillButton("BACK", p.accent) { selected = null }
+                PillButton("返回", p.accent) { selected = null }
                 RouteMap(sel)
-                StatRow("Distance", "%.1f km".format(sel.distanceKm))
-                StatRow("Duration", fmtDur(sel.durationMs))
-                StatRow("Top speed", "${sel.maxSpeedKph.toInt()} km/h")
-                StatRow("Alerts", sel.totalAlerts.toString())
+                StatRow("距离", "%.1f 公里".format(sel.distanceKm))
+                StatRow("持续时间", fmtDur(sel.durationMs))
+                StatRow("最高速度", "${sel.maxSpeedKph.toInt()} 公里/小时")
+                StatRow("警告次数", sel.totalAlerts.toString())
                 if (sel.alertCounts.isNotEmpty()) {
-                    SectionLabel("BY TYPE")
-                    sel.alertCounts.entries.sortedByDescending { it.value }.forEach { StatRow(it.key, it.value.toString()) }
+                    SectionLabel("按类型")
+                    sel.alertCounts.entries.sortedByDescending { it.value }.forEach { StatRow(alertTypeLabel(it.key), it.value.toString()) }
                 }
-                SectionLabel("TIMELINE")
-                if (sel.events.isEmpty()) Text("No events.", color = p.textDim, fontSize = 12.sp)
+                SectionLabel("时间线")
+                if (sel.events.isEmpty()) Text("无事件。", color = p.textDim, fontSize = 12.sp)
                 else sel.events.takeLast(80).reversed().forEach { e ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(e.message, color = sevColor(e.severity), fontSize = 12.sp)
@@ -84,7 +84,7 @@ private fun TripRow(t: Trip, onClick: () -> Unit) {
         Text(stamp(t.startedAtMs), color = p.text, fontSize = 14.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(4.dp))
         Text(
-            "%.1f km  ·  %s  ·  %d km/h  ·  %d alerts".format(t.distanceKm, fmtDur(t.durationMs), t.maxSpeedKph.toInt(), t.totalAlerts),
+            "%.1f 公里  ·  %s  ·  %d 公里/小时  ·  %d 次警告".format(t.distanceKm, fmtDur(t.durationMs), t.maxSpeedKph.toInt(), t.totalAlerts),
             color = p.textDim, fontSize = 12.sp,
         )
     }
@@ -94,7 +94,7 @@ private fun TripRow(t: Trip, onClick: () -> Unit) {
 private fun RouteMap(t: Trip) {
     val p = palette()
     if (t.lats.size < 2) {
-        Text("No GPS route for this trip.", color = p.textDim, fontSize = 12.sp)
+        Text("此行程无GPS路线。", color = p.textDim, fontSize = 12.sp)
         return
     }
     val minLa = t.lats.min(); val maxLa = t.lats.max()
@@ -138,7 +138,7 @@ private fun sevColor(sev: String) = when (sev) {
 
 private fun fmtDur(ms: Long): String {
     val s = ms / 1000; val h = s / 3600; val m = (s % 3600) / 60; val sec = s % 60
-    return if (h > 0) "%dh %02dm".format(h, m) else "%dm %02ds".format(m, sec)
+    return if (h > 0) "%d小时%02d分".format(h, m) else "%d分%02d秒".format(m, sec)
 }
 
 private fun stamp(ms: Long): String = SimpleDateFormat("EEE d MMM, HH:mm", Locale.getDefault()).format(Date(ms))

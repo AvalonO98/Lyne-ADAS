@@ -161,7 +161,7 @@ private fun DrawScope.drawDetection(d: Detection, result: FusionResult, map: Map
     if (d.cls == ObjectClass.UNKNOWN && !isLead) return // declutter: only show relevant classes
     drawCornerBox(l, t, r, b, color, (if (isLead) 3f else 2f) * density)
 
-    val label = if (isLead && result.leadDistanceM != null) "${classTag(d.cls)} ${result.leadDistanceM.toInt()}m"
+    val label = if (isLead && result.leadDistanceM != null) "${classTag(d.cls)} ${result.leadDistanceM.toInt()}米"
     else classTag(d.cls)
     drawLabel(measurer, label, l, t, color, p.chip)
 }
@@ -213,11 +213,13 @@ private fun DrawScope.drawPolyline(rows: FloatArray, xs: FloatArray?, color: Col
     }
 }
 
-private fun classTag(c: ObjectClass): String = when (c) {
-    ObjectClass.CAR -> "CAR"; ObjectClass.TRUCK -> "TRUCK"; ObjectClass.BUS -> "BUS"
-    ObjectClass.AUTORICKSHAW -> "AUTO"; ObjectClass.MOTORCYCLE -> "MOTO"; ObjectClass.BICYCLE -> "CYCLE"
-    ObjectClass.PEDESTRIAN -> "PED"; ObjectClass.STOP_SIGN -> "STOP"; ObjectClass.UNKNOWN -> "OBJ"
-}
+private fun classTag(c: ObjectClass): String = objectClassLabel(
+    when (c) {
+        ObjectClass.CAR -> "CAR"; ObjectClass.TRUCK -> "TRUCK"; ObjectClass.BUS -> "BUS"
+        ObjectClass.AUTORICKSHAW -> "AUTO"; ObjectClass.MOTORCYCLE -> "MOTO"; ObjectClass.BICYCLE -> "CYCLE"
+        ObjectClass.PEDESTRIAN -> "PED"; ObjectClass.STOP_SIGN -> "STOP"; ObjectClass.UNKNOWN -> "OBJ"
+    }
+)
 
 /** Maps normalized [0,1] display-image coords to view pixels under a FILL_CENTER crop. */
 private class Mapper(

@@ -41,47 +41,47 @@ fun CalibrationScreen(
     val last = 3
 
     Column(Modifier.fillMaxSize().background(p.background).padding(16.dp)) {
-        ScreenHeader("CALIBRATION  ${step + 1}/${last + 1}", onClose)
+        ScreenHeader("校准  ${step + 1}/${last + 1}", onClose)
         Spacer(Modifier.height(12.dp))
 
         when (step) {
             0 -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("1 · Mount", color = p.text, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                Text("Mount the phone landscape on the windshield, rear lens unobstructed and level. A stable mount is essential — distance accuracy depends on it.", color = p.textDim, fontSize = 14.sp)
+                Text("1 · 安装", color = p.text, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Text("将手机横向安装在挡风玻璃上，后置镜头无遮挡且水平。稳定的安装至关重要——距离准确性依赖于它。", color = p.textDim, fontSize = 14.sp)
             }
             1 -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("2 · Field of view", color = p.text, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                Text("Source: ${if (intr.fromDevice) "CameraCharacteristics" else "DEFAULT (reduced accuracy)"}", color = p.textDim, fontSize = 12.sp)
+                Text("2 · 视野", color = p.text, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Text("来源: ${if (intr.fromDevice) "相机特性" else "默认(精度降低)"}", color = p.textDim, fontSize = 12.sp)
                 Text("${"%.1f".format(intr.horizontalFovDeg)}°", color = p.text, fontSize = 34.sp, fontWeight = FontWeight.Bold)
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Chip("–1°", false) { onSetFov(intr.horizontalFovDeg - 1f) }
                     Chip("+1°", false) { onSetFov(intr.horizontalFovDeg + 1f) }
-                    Chip("RESET", false) { onSetFov(null) }
+                    Chip("重置", false) { onSetFov(null) }
                 }
             }
             2 -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("3 · Distance scale", color = p.text, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                Text("Park behind a vehicle at a known gap (e.g. 10 m). On the HUD, adjust until the LEAD distance matches reality.", color = p.textDim, fontSize = 14.sp)
+                Text("3 · 距离比例", color = p.text, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Text("将车停在已知距离的车辆后(例如10米)。在HUD上调整，直到领先距离与现实匹配。", color = p.textDim, fontSize = 14.sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Chip("–5%", false) { onSetScale(0.95f) }
                     Chip("+5%", false) { onSetScale(1.05f) }
-                    Chip("RESET", false) { onSetScale(1.0f) }
+                    Chip("重置", false) { onSetScale(1.0f) }
                 }
             }
             else -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Done", color = p.text, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Text("完成", color = p.text, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 Text(
-                    if (state.calibrated) "Calibration saved for this device." else "Using defaults — distance remains an estimate.",
+                    if (state.calibrated) "校准已为此设备保存。" else "使用默认值——距离仍然为估计值。",
                     color = if (state.calibrated) p.ok else p.caution, fontSize = 14.sp, fontWeight = FontWeight.Bold,
                 )
-                Text("Distance and TTC are always estimates; low-confidence values never raise a hard alert.", color = p.textDim, fontSize = 12.sp)
+                Text("距离和TTC始终是估计值；低置信度值永远不会触发硬警告。", color = p.textDim, fontSize = 12.sp)
             }
         }
 
         Spacer(Modifier.weight(1f))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            if (step > 0) PillButton("BACK", p.textDim) { step-- } else Spacer(Modifier.width(1.dp))
-            if (step < last) PillButton("NEXT", p.accent) { step++ } else PillButton("FINISH", p.accent, onClose)
+            if (step > 0) PillButton("上一步", p.textDim) { step-- } else Spacer(Modifier.width(1.dp))
+            if (step < last) PillButton("下一步", p.accent) { step++ } else PillButton("完成", p.accent, onClose)
         }
     }
 }

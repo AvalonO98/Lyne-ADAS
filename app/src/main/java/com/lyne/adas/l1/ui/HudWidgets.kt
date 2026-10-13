@@ -24,18 +24,18 @@ fun StatusStrip(state: AdasUiState) {
     val p = palette()
     Column(Modifier.background(p.chip, RoundedCornerShape(6.dp)).padding(8.dp, 6.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("TIER ${state.tier.name}", color = p.text, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            Text("级别 ${state.tier.getDisplayName()}", color = p.text, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             Text(state.perf?.backend?.name ?: "--", color = p.accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-            Text(if (state.usingStub) "STUB" else "LIVE", color = if (state.usingStub) p.caution else p.ok, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-            Text(state.sensitivity.name, color = p.textDim, fontSize = 11.sp)
+            Text(if (state.usingStub) "模拟" else "实时", color = if (state.usingStub) p.caution else p.ok, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            Text(state.sensitivity.getDisplayName(), color = p.textDim, fontSize = 11.sp)
         }
         Text(
-            "intr ${if (state.intrinsics.fromDevice) "dev" else "def"} ${state.intrinsics.horizontalFovDeg.toInt()}°  " +
-                (if (state.calibrated) "cal" else "uncal") + "  " + (if (state.isNight) "night" else "day"),
+            "内参 ${if (state.intrinsics.fromDevice) "设备" else "默认"} ${state.intrinsics.horizontalFovDeg.toInt()}°  " +
+                (if (state.calibrated) "已校准" else "未校准") + "  " + (if (state.isNight) "夜间" else "白天"),
             color = p.textDim, fontSize = 10.sp,
         )
-        if (state.usingStub) Text("object: no weights — drop .tflite", color = p.textDim, fontSize = 9.sp)
-        else if (state.signStub) Text("TSR: no sign model (STOP via detector)", color = p.textDim, fontSize = 9.sp)
+        if (state.usingStub) Text("物体: 无权重文件 — 需要 .tflite", color = p.textDim, fontSize = 9.sp)
+        else if (state.signStub) Text("交通标志: 无标志模型 (通过检测器识别STOP)", color = p.textDim, fontSize = 9.sp)
     }
 }
 
@@ -46,11 +46,11 @@ fun PerfPanel(perf: PerfSnapshot) {
         Modifier.background(p.chip, RoundedCornerShape(6.dp)).padding(8.dp, 6.dp),
         horizontalAlignment = Alignment.End,
     ) {
-        Text("${"%.1f".format(perf.fps)} FPS", color = p.ok, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-        Text("tot ${"%.0f".format(perf.totalMs)}ms", color = p.text, fontSize = 10.sp)
-        Text("obj ${stage(perf, "object")} lane ${stage(perf, "lane")} sgn ${stage(perf, "sign")}", color = p.textDim, fontSize = 10.sp)
-        Text("drop ${perf.droppedFrames}  heap ${perf.heapUsedMb}/${perf.heapMaxMb}MB", color = p.textDim, fontSize = 10.sp)
-        Text("res ${perf.inputResolution}  cad x${perf.cadenceMultiplier}  th ${perf.thermal}", color = p.textDim, fontSize = 10.sp)
+        Text("${"%.1f".format(perf.fps)} 帧/秒", color = p.ok, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Text("总计 ${"%.0f".format(perf.totalMs)}毫秒", color = p.text, fontSize = 10.sp)
+        Text("物体${stage(perf, "object")} 车道${stage(perf, "lane")} 标志${stage(perf, "sign")}", color = p.textDim, fontSize = 10.sp)
+        Text("丢弃 ${perf.droppedFrames}  堆内存 ${perf.heapUsedMb}/${perf.heapMaxMb}MB", color = p.textDim, fontSize = 10.sp)
+        Text("分辨率 ${perf.inputResolution}  节奏 x${perf.cadenceMultiplier}  温 ${perf.thermal}", color = p.textDim, fontSize = 10.sp)
     }
 }
 
@@ -68,13 +68,13 @@ fun ControlBar(
     onCycleDayNight: () -> Unit,
 ) {
     val p = palette()
-    val dn = when (state.dayNightMode) { DayNightMode.AUTO -> "AUTO"; DayNightMode.DAY -> "DAY"; DayNightMode.NIGHT -> "NIGHT" }
+    val dn = when (state.dayNightMode) { DayNightMode.AUTO -> "自动"; DayNightMode.DAY -> "白天"; DayNightMode.NIGHT -> "夜晚" }
     Row(modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        PillButton(if (state.muted) "MUTED" else "SOUND", if (state.muted) p.caution else p.ok, onToggleMute)
-        PillButton(if (state.debugInject) "INJECT•" else "INJECT", if (state.debugInject) p.caution else p.textDim, onToggleInject)
+        PillButton(if (state.muted) "已静音" else "声音", if (state.muted) p.caution else p.ok, onToggleMute)
+        PillButton(if (state.debugInject) "注入•" else "注入", if (state.debugInject) p.caution else p.textDim, onToggleInject)
         PillButton(dn, p.accent, onCycleDayNight)
-        PillButton("TRIP", p.text, onOpenSession)
-        PillButton("CAL", p.text, onOpenCalibration)
-        PillButton("SETUP", p.text, onOpenSettings)
+        PillButton("行程", p.text, onOpenSession)
+        PillButton("校准", p.text, onOpenCalibration)
+        PillButton("设置", p.text, onOpenSettings)
     }
 }

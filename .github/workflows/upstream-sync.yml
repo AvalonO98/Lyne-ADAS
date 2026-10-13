@@ -1,0 +1,201 @@
+name: Upstream Sync (read-only upstream)
+
+# 从上游拉取新版本，检查汉化是否被带回英文，然后**只在你自己的仓库内**开 PR。
+#
+# ⛔ 上游是严格只读的。本工作流只用 `git fetch <URL> <REF>` 直接拉取，
+#    **从不把上游添加为 git 远端**，因此从机制上不可能向上游 push 或向它开 PR。
+#    所有分支、所有 PR 都只发生在 ${{ github.repository }} 内。
+#
+# 设计原则：
+#   1. 绝不直接推送到 main —— 同步结果只进临时分支，由 PR 审核后合并。
+#   2. 绝不用 `-X theirs` 之类的策略覆盖本仓库文件 —— 那会把汉化改回英文。
+#      上游带来的英文由 L10n Guard 精确列出，由人补翻译。
+#   3. 合并冲突就停下来交人工处理，不产生带冲突标记的提交。
+#   4. 推送前断言远端只有 origin 且 origin 就是本仓库，防止误推到别处。
+#
+# 上游地址解析顺序：
+#   workflow_dispatch 的 upstream_repo 输入  →  仓库变量 vars.UPSTREAM_REPO  →  内置默认值
+on:
+  workflow_dispatch:
+    inputs:
+      upstream_repo:
+        description: '上游仓库 <owner>/<repo>（留空则用 vars.UPSTREAM_REPO 或内置默认值）'
+        required: false
+        default: ''
+      upstream_ref:
+        description: '上游分支或标签（留空则用 vars.UPSTREAM_REF，默认 main）'
+        required: false
+        default: ''
+  schedule:
+    # 每天 02:00 UTC 检查一次上游
+    - cron: '0 2 * * *'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  # 内置默认上游（只读）。可用 vars.UPSTREAM_REPO 覆盖。
+  DEFAULT_UPSTREAM_REPO: Sherin-SEF-AI/Lyne-ADAS
+  DEFAULT_UPSTREAM_REF: main
+
+jobs:
+  sync:
+    name: Sync upstream (read-only) and open PR in this repo
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve upstream and assert we only ever write to this repo
+        id: cfg
+        env:
+          VAR_UPSTREAM_REPO: ${{ vars.UPSTREAM_REPO }}
+          VAR_UPSTREAM_REF: ${{ vars.UPSTREAM_REF }}
+          INPUT_REPO: ${{ github.event.inputs.upstream_repo }}
+          INPUT_REF: ${{ github.event.inputs.upstream_ref }}
+        run: |
+          set -euo pipefail
+          REPO="${INPUT_REPO:-${VAR_UPSTREAM_REPO:-$DEFAULT_UPSTREAM_REPO}}"
+          REF="${INPUT_REF:-${VAR_UPSTREAM_REF:-$DEFAULT_UPSTREAM_REF}}"
+          echo "repo=$REPO" >> "$GITHUB_OUTPUT"
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+          echo "上游（只读）: $REPO  分支: $REF"
+          echo "本仓库（唯一可写目标）: $GITHUB_REPOSITORY"
+
+          # 断言 1：只有一个远端，且必须叫 origin
+          REMOTES=$(git remote)
+          if [ "$REMOTES" != "origin" ]; then
+            echo "::error::期望只有 origin 一个远端，实际为: [$REMOTES]。中止以避免误写其他仓库。"
+            exit 1
+          fi
+
+          # 断言 2：origin 必须就是当前仓库
+          ORIGIN_URL=$(git remote get-url origin)
+          case "$ORIGIN_URL" in
+            *"$GITHUB_REPOSITORY"*) ;;
+            *) echo "::error::origin ($ORIGIN_URL) 不是当前仓库 $GITHUB_REPOSITORY。中止。"; exit 1 ;;
+          esac
+
+          # 断言 3：origin 绝不能指向上游
+          case "$ORIGIN_URL" in
+            *"$REPO"*) echo "::error::origin 指向了上游 $REPO。中止。"; exit 1 ;;
+          esac
+          echo "安全检查通过：唯一可写远端 = origin ($ORIGIN_URL)"
+
+      - name: Fetch upstream by URL (no remote is added)
+        env:
+          UPSTREAM_REPO: ${{ steps.cfg.outputs.repo }}
+          UPSTREAM_REF: ${{ steps.cfg.outputs.ref }}
+        run: |
+          set -euo pipefail
+          # 关键：直接按 URL 拉取到 FETCH_HEAD，不执行 `git remote add upstream`，
+          # 因此上游永远不会成为一个可推送的远端。
+          git fetch --no-tags "https://github.com/${UPSTREAM_REPO}.git" "$UPSTREAM_REF"
+          UPSTREAM_SHA=$(git rev-parse FETCH_HEAD)
+          echo "UPSTREAM_SHA=$UPSTREAM_SHA" >> "$GITHUB_ENV"
+          echo "上游提交: $UPSTREAM_SHA"
+          echo "远端列表（应只有 origin）: $(git remote | tr '\n' ' ')"
+
+      - name: Detect whether there is anything new
+        id: diff
+        run: |
+          set -euo pipefail
+          if git merge-base --is-ancestor "$UPSTREAM_SHA" HEAD; then
+            echo "needs_sync=false" >> "$GITHUB_OUTPUT"
+            echo "上游没有新提交，无需同步。"
+          else
+            echo "needs_sync=true" >> "$GITHUB_OUTPUT"
+            echo "发现上游新提交。"
+          fi
+
+      - name: Create sync branch (in this repo only)
+        if: steps.diff.outputs.needs_sync == 'true'
+        id: branch
+        run: |
+          set -euo pipefail
+          BRANCH="l10n/upstream-sync-$(date -u +%Y%m%d-%H%M%S)"
+          git checkout -b "$BRANCH"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "分支: $BRANCH"
+
+      - name: Merge upstream (conflicts must be resolved by a human)
+        if: steps.diff.outputs.needs_sync == 'true'
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # 默认合并策略：不覆盖任何一侧，冲突就停下来交人工处理。
+          if ! git merge --no-ff --no-edit "$UPSTREAM_SHA"; then
+            echo "::error::与上游合并存在冲突，已中止。冲突文件："
+            git diff --name-only --diff-filter=U | sed 's/^/  - /'
+            git merge --abort || true
+            echo "::error::请手动在本仓库内同步该版本，并按 L10n Guard 的提示补回中文文案。"
+            exit 1
+          fi
+
+      - name: Localization guard (lists English reintroduced by upstream)
+        if: steps.diff.outputs.needs_sync == 'true'
+        id: guard
+        run: |
+          set -euo pipefail
+          if python3 scripts/check_untranslated.py > guard.log 2>&1; then
+            echo "state=clean" >> "$GITHUB_OUTPUT"
+            echo "汉化完好：上游改动没有引入英文文案。"
+          else
+            echo "state=regressed" >> "$GITHUB_OUTPUT"
+            echo "上游改动引入了需要重新汉化的文案："
+            cat guard.log
+          fi
+
+      - name: Push sync branch to this repo only
+        if: steps.diff.outputs.needs_sync == 'true'
+        env:
+          BRANCH: ${{ steps.branch.outputs.branch }}
+        run: |
+          set -euo pipefail
+          # 只推 origin（已在 cfg 步骤断言为当前仓库）
+          git push --set-upstream origin "$BRANCH"
+
+      - name: Open pull request in this repo only
+        if: steps.diff.outputs.needs_sync == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ steps.branch.outputs.branch }}
+          UPSTREAM_REPO: ${{ steps.cfg.outputs.repo }}
+          UPSTREAM_REF: ${{ steps.cfg.outputs.ref }}
+          GUARD_STATE: ${{ steps.guard.outputs.state }}
+        run: |
+          set -euo pipefail
+          if [ "$GUARD_STATE" = "clean" ]; then
+            NOTES="汉化守卫通过：上游改动没有引入英文文案。"
+          else
+            NOTES="⚠️ 汉化守卫失败：上游改动引入了英文文案，需要在本 PR 中补回中文（见本工作流 guard 步骤的日志）。"
+          fi
+          {
+            echo "从上游 \`${UPSTREAM_REPO}\` 的 \`${UPSTREAM_REF}\` 拉取（上游提交 \`${UPSTREAM_SHA}\`）。"
+            echo
+            echo "> 上游仅作只读来源：本次同步**没有**向上游仓库推送任何内容，也没有向它提出任何合并请求。"
+            echo "> 本 PR 完全属于 \`${GITHUB_REPOSITORY}\`。"
+            echo
+            echo "### 汉化状态"
+            echo "${NOTES}"
+            echo
+            echo "### 合并前请确认"
+            echo "- [ ] L10n Guard 工作流通过"
+            echo "- [ ] Build APK 工作流通过"
+            echo "- [ ] 在设备上抽查中文显示"
+          } > pr-body.md
+          # --repo 显式限定为当前仓库
+          gh pr create \
+            --repo "$GITHUB_REPOSITORY" \
+            --base main \
+            --head "$BRANCH" \
+            --title "同步上游 ${UPSTREAM_REF}（${UPSTREAM_SHA:0:7}）" \
+            --body-file pr-body.md
+
+      - name: Summary
+        if: steps.diff.outputs.needs_sync == 'false'
+        run: echo "上游没有新提交，本次无需操作。"

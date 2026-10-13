@@ -1,0 +1,14 @@
+<resources>
+    <!--
+      注意：本目录的中文资源目前并未被代码引用。
+      - app_name 与默认 values/strings.xml 相同（品牌名，不翻译）；
+      - perm_rationale_* 在代码中没有任何 R.string 引用。
+      安装包实际显示的中文来自内联在 Kotlin UI 代码里的文案
+      （ui/*.kt 与 fusion/FusionEngine.kt）以及 ui/ChineseMapper.kt 的映射。
+      这里保留这些资源是为了将来改用资源化文案时可直接复用；
+      若确认不再需要，可以删除本目录（不影响构建）。
+    -->
+    <string name="app_name">Lyne ADAS</string>
+    <string name="perm_rationale_camera">Lyne ADAS 需要后置摄像头来检测车辆、行人和车道线。这是核心安全功能，无法禁用。</string>
+    <string name="perm_rationale_location">位置信息用于读取GPS速度，用于车间距离计时和超速警告。没有位置信息时，基于速度的警告功能会降级。</string>
+</resources>

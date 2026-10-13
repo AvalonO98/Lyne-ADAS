@@ -1,0 +1,56 @@
+name: Build APK
+
+# 构建中文汉化版 APK。推送 / PR / 手动均可触发。
+# 该工作流不修改任何文件，只构建并上传产物。
+on:
+  push:
+    branches: [ main, l10n-cn ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Assemble debug APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Build debug APK
+        run: ./gradlew :app:assembleDebug --stacktrace
+
+      - name: Verify APK exists
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          if [ ! -f "$APK" ]; then
+            echo "::error::APK not found at $APK"
+            exit 1
+          fi
+          SIZE=$(stat -c%s "$APK")
+          echo "APK size: $((SIZE / 1024 / 1024)) MB"
+          test "$SIZE" -gt 0
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: lyne-adas-cn-debug
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14

@@ -109,7 +109,7 @@ fun HudScreen(
             Box(Modifier.fillMaxSize().background(p.background), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("LYNE ADAS", color = p.text, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                    Text(state.error ?: "INITIALIZING…", color = p.textDim, fontSize = 13.sp)
+                    Text(state.error ?: "初始化中…", color = p.textDim, fontSize = 13.sp)
                 }
             }
         }

@@ -133,25 +133,25 @@ class FusionEngine(
         // --- Events (debounced) ---
         val events = ArrayList<AdasEvent>(5)
         maybeEvent(events, AlertType.FCW, fcwSev, nowMs) {
-            AdasEvent(AlertType.FCW, fcwSev, nowMs, leadConf ?: 0f, "COLLISION ${fmt(ttcSec)}s",
+            AdasEvent(AlertType.FCW, fcwSev, nowMs, leadConf ?: 0f, "碰撞警告 ${fmt(ttcSec)}秒",
                 ttcSec = ttcSec, distanceM = leadDist, distanceConfidence = leadConf, bbox = leadBox)
         }
         maybeEvent(events, AlertType.HEADWAY, headwaySev, nowMs) {
-            AdasEvent(AlertType.HEADWAY, headwaySev, nowMs, 0.8f, "TAILGATING ${fmt(headwaySec)}s",
+            AdasEvent(AlertType.HEADWAY, headwaySev, nowMs, 0.8f, "跟车过近 ${fmt(headwaySec)}秒",
                 headwaySec = headwaySec, distanceM = leadDist, bbox = leadBox, speedKph = speedKph)
         }
         maybeEvent(events, AlertType.VRU, vruSev, nowMs) {
-            AdasEvent(AlertType.VRU, vruSev, nowMs, 0.85f, "ROAD USER AHEAD", bbox = vruBox)
+            AdasEvent(AlertType.VRU, vruSev, nowMs, 0.85f, "前方行人/车辆", bbox = vruBox)
         }
         maybeEvent(events, AlertType.LDW, ldwSev, nowMs) {
-            AdasEvent(AlertType.LDW, ldwSev, nowMs, p.lane.confidence, "LANE DEPARTURE", laneOffset = laneOffset)
+            AdasEvent(AlertType.LDW, ldwSev, nowMs, p.lane.confidence, "车道偏离", laneOffset = laneOffset)
         }
         maybeEvent(events, AlertType.OVERSPEED, overspeedSev, nowMs) {
-            AdasEvent(AlertType.OVERSPEED, overspeedSev, nowMs, 0.9f, "OVERSPEED ${fmt(speedKph)}/$speedLimit",
+            AdasEvent(AlertType.OVERSPEED, overspeedSev, nowMs, 0.9f, "超速 ${fmt(speedKph)}/限速$speedLimit",
                 speedKph = speedKph, speedLimitKph = speedLimit)
         }
         maybeEvent(events, AlertType.STOP, stopSev, nowMs) {
-            AdasEvent(AlertType.STOP, stopSev, nowMs, 0.85f, "STOP SIGN", bbox = stopBox)
+            AdasEvent(AlertType.STOP, stopSev, nowMs, 0.85f, "停车标志", bbox = stopBox)
         }
 
         // --- Top severity for the master alert ---

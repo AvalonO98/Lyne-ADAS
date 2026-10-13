@@ -32,6 +32,7 @@ import com.lyne.adas.l1.recording.RingBufferRecorder
 import com.lyne.adas.l1.sensors.LightSensor
 import com.lyne.adas.l1.sensors.LocationProvider
 import com.lyne.adas.l1.sensors.MotionProvider
+import com.lyne.adas.l1.ui.getDisplayName
 import java.io.File
 import java.util.ArrayDeque
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -122,7 +123,10 @@ class AdasController(
             analysisTarget = target,
             videoCapture = recorder?.buildUseCase(),
             onReady = { pushBase(resolved.tier, resolved.probeSummary()) },
-            onError = { t -> _state.value = _state.value.copy(error = t.message ?: "camera error", cameraReady = false) },
+            onError = { t ->
+                Log.w(TAG, "camera error", t)
+                _state.value = _state.value.copy(error = "摄像头启动失败，请检查相机权限后重试", cameraReady = false)
+            },
             onDashcamBound = { ok -> if (ok) recorder?.onBound() else recorder?.onBindFailed() },
         )
         pushBase(resolved.tier, resolved.probeSummary())
@@ -267,7 +271,7 @@ class AdasController(
                 putExtra(Intent.EXTRA_STREAM, uri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            context.startActivity(Intent.createChooser(intent, "Export ROVIX events").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            context.startActivity(Intent.createChooser(intent, "导出 ROVIX 事件记录").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         } catch (t: Throwable) {
             Log.w(TAG, "share rovix failed", t)
         }
@@ -280,8 +284,8 @@ class AdasController(
             .sortedByDescending { it.lastModified() }
     }
 
-    fun playClip(file: File) = openClip(file, Intent.ACTION_VIEW, "Play clip")
-    fun shareClip(file: File) = openClip(file, Intent.ACTION_SEND, "Share clip")
+    fun playClip(file: File) = openClip(file, Intent.ACTION_VIEW, "播放行车记录视频")
+    fun shareClip(file: File) = openClip(file, Intent.ACTION_SEND, "分享行车记录视频")
 
     private fun openClip(file: File, action: String, title: String) {
         if (!file.exists()) return
@@ -354,4 +358,4 @@ class AdasController(
 }
 
 private fun com.lyne.adas.l1.perf.ResolvedTier.probeSummary(): String =
-    probe?.summary ?: (if (overridden) "tier override=${tier.name}" else "tier=${tier.name} (cached)")
+    probe?.summary ?: (if (overridden) "级别手动指定=${tier.getDisplayName()}" else "级别=${tier.getDisplayName()}（已缓存）")

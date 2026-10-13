@@ -91,7 +91,7 @@ class LiteRtEngine private constructor(
                     built.release()
                 }
             }
-            throw IllegalStateException("No usable inference backend for this model", lastError)
+            throw IllegalStateException("该模型没有可用的推理后端", lastError)
         }
     }
 
