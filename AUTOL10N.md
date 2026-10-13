@@ -19,11 +19,16 @@
 
 ### 1. `build.yml` —— 构建 APK 并自动发布到 Releases
 - **触发**：推送到 `main` / `l10n-cn`、对 `main` 的 PR、手动。
-- **做什么**：JDK 17 → Gradle 8.11.1（wrapper）→ `./gradlew :app:assembleDebug` → 校验 APK 存在且非空
+- **产物文件名**：`LyneADAS-<版本名>-zh.apk`（例如 `LyneADAS-1.0-zh.apk`）。
+  由 `app/build.gradle.kts` 的 `androidComponents { … outputFileName … }` 决定，本地与云端一致；
+  版本名来自该文件顶部的 `appVersionName`（与 `defaultConfig.versionName` 同一来源）。
+  工作流本身按 glob 定位 APK，因此改名不会导致流水线失败。
+- **做什么**：JDK 17 → Gradle 8.11.1（wrapper）→ `./gradlew :app:assembleDebug` → 定位并校验 APK
   → 上传为 Artifacts（`lyne-adas-cn-debug`，保留 14 天，用于按提交留档）
   → **发布到 Releases**。
 - **发布策略**：滚动标签 `cn-latest`（预发布），每次 `main` 构建成功就覆盖其中的 APK 并刷新说明，
-  因此 Releases 页面永远有一个可直接下载的「最新中文版」。PR 构建只校验、不发布。
+  同时清掉与当前文件名不符的过期附件；因此 Releases 页面永远只有一个可直接下载的最新中文版。
+  PR 构建只校验、不发布。
 - **权限**：`contents: write`（创建/更新 Release 所需；来自 fork 的 PR 会被 GitHub 自动降级为只读）。
 
 > 若你希望改成「每个提交一个独立 Release」或「打 tag 才发布」，只需调整 `build.yml` 里

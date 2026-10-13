@@ -2,7 +2,9 @@ name: Build APK
 
 # 构建中文汉化版 APK，并把产物自动发布到 Releases（滚动更新的「最新」）。
 #
-# - 每次 main 构建成功 → 覆盖 Releases 里的 cn-latest（一个固定标签，方便直接下载）
+# - APK 文件名由 app/build.gradle.kts 决定：LyneADAS-<版本名>-zh.apk（如 LyneADAS-1.0-zh.apk）
+#   因此这里不写死路径，而是构建后按 glob 自动定位，改名了也不会让工作流失败。
+# - 每次 main 构建成功 → 覆盖 Releases 里的 cn-latest（固定标签，方便直接下载）
 # - 每次构建同时上传 Artifacts → 便于按提交留档（默认保留 14 天）
 # - PR 构建只校验能否构建，不发布
 on:
@@ -17,7 +19,7 @@ permissions:
   contents: write
 
 env:
-  APK_PATH: app/build/outputs/apk/debug/app-debug.apk
+  APK_DIR: app/build/outputs/apk/debug
   RELEASE_TAG: cn-latest
 
 jobs:
@@ -43,22 +45,30 @@ jobs:
       - name: Build debug APK
         run: ./gradlew :app:assembleDebug --stacktrace
 
-      - name: Verify APK exists
+      - name: Locate built APK
+        id: apk
         run: |
           set -euo pipefail
-          if [ ! -f "$APK_PATH" ]; then
-            echo "::error::APK not found at $APK_PATH"
+          APK=$(find "$APK_DIR" -maxdepth 1 -name '*.apk' -print | head -n 1)
+          if [ -z "$APK" ]; then
+            echo "::error::$APK_DIR 下没有找到 .apk"
+            ls -la "$APK_DIR" || true
             exit 1
           fi
-          SIZE=$(stat -c%s "$APK_PATH")
-          echo "APK size: $((SIZE / 1024 / 1024)) MB"
-          test "$SIZE" -gt 0
+          SIZE=$(stat -c%s "$APK")
+          if [ "$SIZE" -le 0 ]; then
+            echo "::error::APK 为空: $APK"
+            exit 1
+          fi
+          echo "path=$APK" >> "$GITHUB_OUTPUT"
+          echo "name=$(basename "$APK")" >> "$GITHUB_OUTPUT"
+          echo "找到 APK: $APK ($((SIZE / 1024 / 1024)) MB)"
 
       - name: Upload APK as build artifact (按提交留档)
         uses: actions/upload-artifact@v6
         with:
           name: lyne-adas-cn-debug
-          path: app/build/outputs/apk/debug/*.apk
+          path: ${{ env.APK_DIR }}/*.apk
           if-no-files-found: error
           retention-days: 14
 
@@ -66,14 +76,17 @@ jobs:
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APK_FILE: ${{ steps.apk.outputs.path }}
+          APK_NAME: ${{ steps.apk.outputs.name }}
         run: |
           set -euo pipefail
-          SIZE=$(stat -c%s "$APK_PATH")
+          SIZE=$(stat -c%s "$APK_FILE")
           {
             echo "## Lyne ADAS 中文版"
             echo
             echo "由 GitHub Actions 自动构建并发布。"
             echo
+            echo "- 文件: ${APK_NAME}"
             echo "- 提交: ${GITHUB_SHA}"
             echo "- 分支: ${GITHUB_REF_NAME}"
             echo "- APK 大小: $((SIZE / 1024 / 1024)) MB"
@@ -89,11 +102,22 @@ jobs:
 
           if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "更新已有 Release: $RELEASE_TAG"
-            gh release upload "$RELEASE_TAG" "$APK_PATH" --clobber --repo "$GITHUB_REPOSITORY"
+            # 先清掉不再匹配当前文件名的旧附件（例如早期版本留下的 app-debug.apk），
+            # 避免 Release 里堆积过期 APK。失败不阻断流程。
+            gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json assets \
+              --jq '.assets[].name' | while read -r asset; do
+                [ -z "$asset" ] && continue
+                if [ "$asset" != "$APK_NAME" ]; then
+                  echo "移除过期附件: $asset"
+                  gh release delete-asset "$RELEASE_TAG" "$asset" \
+                    --repo "$GITHUB_REPOSITORY" --yes || true
+                fi
+              done
+            gh release upload "$RELEASE_TAG" "$APK_FILE" --clobber --repo "$GITHUB_REPOSITORY"
             gh release edit "$RELEASE_TAG" --notes-file notes.md --repo "$GITHUB_REPOSITORY"
           else
             echo "创建 Release: $RELEASE_TAG"
-            gh release create "$RELEASE_TAG" "$APK_PATH" \
+            gh release create "$RELEASE_TAG" "$APK_FILE" \
               --repo "$GITHUB_REPOSITORY" \
               --target "$GITHUB_SHA" \
               --title "Lyne ADAS 中文版（最新构建）" \
